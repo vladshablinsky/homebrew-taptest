@@ -3,7 +3,7 @@ class Ack < Formula
   homepage "https://github.com/nvbn/thefuck"
   url "https://pypi.python.org/packages/source/t/thefuck/thefuck-1.46.tar.gz"
   sha256 "d34dbadea0b399229a4f2b19c848d3281c7bd9a1dacd26ee44484a26bba4056d"
-  version "2.14"
+  version "2.15"
   head "https://github.com/nvbn/thefuck.git"
 
   bottle do
