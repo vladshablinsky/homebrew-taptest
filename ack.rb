@@ -1,56 +1,64 @@
-# Original formula: 
-# https://github.com/Homebrew/homebrew/blob/master/Library/Formula/ack.rb
-
 class Ack < Formula
-  desc "A search tool like grep, but optimized for programmers"
-  homepage "http://beyondgrep.com/"
-  url "http://beyondgrep.com/ack-2.14-single-file"
-  sha256 "1d203cfbc52ce8f49e3992be1cd3e4d7d5dfb7daa3739e8628aa9858ccc5b9df"
-  version "2.14"
-  renames "oldname1"
+  desc "Programatically correct mistyped console commands"
+  homepage "https://github.com/nvbn/thefuck"
+  url "https://pypi.python.org/packages/source/t/thefuck/thefuck-1.46.tar.gz"
+  sha256 "d34dbadea0b399229a4f2b19c848d3281c7bd9a1dacd26ee44484a26bba4056d"
 
-  # comment to change revision
+  head "https://github.com/nvbn/thefuck.git"
 
-  head "https://github.com/petdance/ack2.git", :branch => "dev"
-
-  devel do
-    url "https://cpan.metacpan.org/authors/id/P/PE/PETDANCE/ack-2.15_01.tar.gz"
-    sha256 "dfd1df3def5d3b16af8a7c585fc8954362d4f2b097891919490c89fdb484fd83"
-    version "2.15-01"
+  bottle do
+    cellar :any
+    sha256 "b6d36f2b8327a36a9c25fa6b9a15ad9c4a29cda9be0a64d14fdb8abe68b952c9" => :yosemite
+    sha256 "5b1e61f3a009c8fa0bd31c12cc353b603880f5052eca7f346d1e3e5020d8f454" => :mavericks
+    sha256 "18cbb13454a6472ea01d0e3d512afc0667ac5a833562d0b0f9919bfcb1b649d3" => :mountain_lion
   end
 
-  resource "File::Next" do
-    url "https://cpan.metacpan.org/authors/id/P/PE/PETDANCE/File-Next-1.12.tar.gz"
-    sha256 "cc3afd8eaf6294aba93b8152a269cc36a9df707c6dc2c149aaa04dabd869e60a"
+  depends_on :python if MacOS.version <= :snow_leopard
+
+  resource "psutil" do
+    url "https://pypi.python.org/packages/source/p/psutil/psutil-2.2.1.tar.gz"
+    sha256 "a0e9b96f1946975064724e242ac159f3260db24ffa591c3da0a355361a3a337f"
+  end
+
+  resource "pathlib" do
+    url "https://pypi.python.org/packages/source/p/pathlib/pathlib-1.0.1.tar.gz"
+    sha256 "6940718dfc3eff4258203ad5021090933e5c04707d5ca8cc9e73c94a7894ea9f"
+  end
+
+  resource "colorama" do
+    url "https://pypi.python.org/packages/source/c/colorama/colorama-0.3.3.tar.gz"
+    sha256 "eb21f2ba718fbf357afdfdf6f641ab393901c7ca8d9f37edd0bee4806ffa269c"
+  end
+
+  resource "six" do
+    url "https://pypi.python.org/packages/source/s/six/six-1.9.0.tar.gz"
+    sha256 "e24052411fc4fbd1f672635537c3fc2330d9481b18c0317695b46259512c91d5"
   end
 
   def install
-    if build.stable?
-      bin.install "ack-#{version}-single-file" => "ack"
-      system "pod2man", "#{bin}/ack", "ack.1"
-      man1.install "ack.1"
-    else
-      ENV.prepend_create_path "PERL5LIB", libexec/"lib/perl5"
-      ENV.prepend_path "PERL5LIB", libexec/"lib"
+    ENV["PYTHONPATH"] = libexec/"vendor/lib/python2.7/site-packages"
+    ENV.prepend_create_path "PYTHONPATH", libexec/"lib/python2.7/site-packages"
 
-      resource("File::Next").stage do
-        system "perl", "Makefile.PL", "INSTALL_BASE=#{libexec}"
-        system "make", "install"
-      end
-
-      system "perl", "Makefile.PL", "DESTDIR=#{buildpath}"
-      system "make"
-
-      libexec.install "ack"
-      chmod 0755, libexec/"ack"
-      (libexec/"lib").install "blib/lib/App"
-      (bin/"ack").write_env_script("#{libexec}/ack", :PERL5LIB => ENV["PERL5LIB"])
-      man1.install "blib/man1/ack.1"
+    resources.each do |r|
+      r.stage { system "python", *Language::Python.setup_install_args(libexec/"vendor") }
     end
+    system "python", *Language::Python.setup_install_args(libexec)
+
+    bin.install Dir["#{libexec}/bin/*"]
+    bin.env_script_all_files(libexec/"bin", :PYTHONPATH => ENV["PYTHONPATH"])
   end
 
   test do
-    assert_equal "foo bar\n", pipe_output("#{bin}/ack --noenv --nocolor bar -",
-                                          "foo\nfoo bar\nbaz")
+    output = shell_output(bin/"thefuck echho")
+    assert output.include? "echo"
+  end
+
+  def caveats; <<-EOS.undent
+    Add the following to your .bash_profile or .zshrc:
+      bash: alias fuck='eval $(thefuck $(fc -ln -1)); history -r'
+      zsh: alias fuck='eval $(thefuck $(fc -ln -1 | tail -n 1)); fc -R'
+
+      Other shells: https://github.com/nvbn/thefuck/wiki/Shell-aliases
+    EOS
   end
 end
