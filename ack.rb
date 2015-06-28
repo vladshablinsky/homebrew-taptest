@@ -9,6 +9,8 @@ class Ack < Formula
   version "2.14"
   renames "oldname1"
 
+  # comment to change revision
+
   head "https://github.com/petdance/ack2.git", :branch => "dev"
 
   devel do
